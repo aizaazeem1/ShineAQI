@@ -3,8 +3,10 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 
+# Load model
 model = joblib.load("rf_model.pkl")
 
+# Define the expected input schema
 class AQIInput(BaseModel):
     co: float
     no: float
@@ -34,10 +36,20 @@ class AQIInput(BaseModel):
     aqi_change_1h: float
     aqi_rolling_mean_6h: float
 
+# Init FastAPI app
 app = FastAPI()
 
 @app.post("/predict")
 def predict_aqi(data: AQIInput):
     df = pd.DataFrame([data.dict()])
+
+    # Fix: rename to match model training column names
+    df.rename(columns={
+        "aqi_pm25": "AQI_PM25",
+        "aqi_pm10": "AQI_PM10",
+        "aqi_change_1h": "AQI_change_1h",
+        "aqi_rolling_mean_6h": "AQI_rolling_mean_6h"
+    }, inplace=True)
+
     prediction = model.predict(df)[0]
     return {"predicted_aqi": float(prediction)}
